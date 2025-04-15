@@ -1,7 +1,7 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
     <id>com.ltu.progress-bar</id>
-    <name>LTU progress bar</name>
+    <name>LTU Progress Bar</name>
     <vendor>LTU</vendor>
 
     <description><![CDATA[
@@ -11,11 +11,10 @@
 
     <depends>com.intellij.modules.platform</depends>
 
-    <extensions defaultExtensionNs="com.intellij">
-        <!-- Add your extensions here -->
-    </extensions>
-
     <applicationListeners>
-        <!-- Add your application listeners here -->
+        <listener class="com.ltu.progressbar.listener.LtuProgressBarListener"
+                  topic="com.intellij.ide.ui.LafManagerListener"/>
+        <listener class="com.ltu.progressbar.listener.LtuProgressBarListener"
+                  topic="com.intellij.openapi.application.ApplicationActivationListener"/>
     </applicationListeners>
 </idea-plugin>

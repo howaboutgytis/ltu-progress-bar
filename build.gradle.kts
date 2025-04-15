@@ -1,5 +1,6 @@
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 import java.time.LocalDateTime
@@ -25,39 +26,35 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.12.1")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.12.1")
 
-    // Define IntelliJ Platform dependency using the new approach
     intellijPlatform {
-        create("IC", "2024.3") // Target IDE - IC for Community Edition, IU for Ultimate Edition, with version
+        intellijIdeaUltimate("2024.3")
     }
 }
 
-// Configure IntelliJ Platform Plugin
 intellijPlatform {
-    // Plugin configuration
     pluginConfiguration {
-        name.set("LTU progress bar")
+        name.set("LTU Progress Bar")
         vendor.name.set("LTU")
         version.set(project.version.toString())
         ideaVersion {
-            sinceBuild.set("233") // Min supported ver.
+            sinceBuild.set("243") // Min supported ver.
             untilBuild.set("243.*") // Max supported ver.
         }
     }
 
-    // Plugin verification configuration
     pluginVerification {
         ides {
-            ide(IntelliJPlatformType.IntellijIdeaCommunity, "2023.3")
-            ide(IntelliJPlatformType.IntellijIdeaCommunity, "2024.3")
-
-            ide(IntelliJPlatformType.IntellijIdeaUltimate, "2023.3")
+//            ide(IntelliJPlatformType.IntellijIdeaCommunity, "2024.3")
             ide(IntelliJPlatformType.IntellijIdeaUltimate, "2024.3")
         }
+    }
+
+    publishing {
+        hidden = true
     }
 }
 
 tasks {
-    // Set the JVM compatibility versions
     withType<JavaCompile> {
         sourceCompatibility = "21"
         targetCompatibility = "21"
@@ -65,6 +62,7 @@ tasks {
     withType<KotlinCompile> {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_21)
+            languageVersion.set(KotlinVersion.KOTLIN_2_1)
         }
     }
 
@@ -84,14 +82,13 @@ tasks {
                 # Auto-generated file - DO NOT EDIT MANUALLY
                 # Generated on ${LocalDateTime.now()}
                 version=$projectVersion
-                name=LTU progress bar
+                name=LTU Progress Bar
                 vendor=LTU
             """.trimIndent()
             )
         }
     }
 
-    // Make sure the plugin info is generated before processResources
     processResources {
         dependsOn(generatePluginInfo)
     }

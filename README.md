@@ -1,4 +1,4 @@
-# LTU progress bar
+# LTU Progress Bar
 
 A custom progress bar plugin for IntelliJ IDEA and other JetBrains IDEs.
 
@@ -12,7 +12,7 @@ A custom progress bar plugin for IntelliJ IDEA and other JetBrains IDEs.
 - **From JetBrains Marketplace**:
   - Open IntelliJ IDEA
   - Go to Settings/Preferences → Plugins
-  - Search for "LTU progress bar"
+  - Search for "LTU Progress Bar"
   - Click Install
 
 - **Manual Installation**:
@@ -30,18 +30,17 @@ A custom progress bar plugin for IntelliJ IDEA and other JetBrains IDEs.
 
 ### Setup
 
-1. Clone the repository
-   ```
-   git clone https://github.com/yourusername/ltu-progress-bar.git
-   cd ltu-progress-bar
-   ```
+1. Open the project in IntelliJ IDEA
 
-2. Open the project in IntelliJ IDEA
+2. Start the IDE in development mode
+   ```
+   ./gradlew runIde
+   ```
+   - IDE type is configured in `build.gradle.kts`
 
-3. Build the plugin
-   ```
-   ./gradlew buildPlugin
-   ```
+3. To see the changes:
+    - Help -> Edit Custom Properties -> add `idea.is.internal=true`
+    - Then after `gradlew runIde` task, go to: Tools -> Internal Actions -> UI -> Test Progress Indicators
 
 ### Version Management
 
