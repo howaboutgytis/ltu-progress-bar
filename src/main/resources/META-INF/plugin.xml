@@ -11,6 +11,16 @@ For LTU devs whose hearts beat stronger.
 
     <depends>com.intellij.modules.platform</depends>
 
+    <!-- Extension points defined by the plugin.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationConfigurable parentId="appearance"
+                                 instance="com.ltu.progressbar.settings.LtuProgressBarConfigurable"
+                                 id="org.intellij.sdk.settings.AppSettingsConfigurable"
+                                 dynamic="true"
+                                 displayName="LTU Progress Bar"/>
+    </extensions>
+
     <applicationListeners>
         <listener class="com.ltu.progressbar.listener.LtuProgressBarListener"
                   topic="com.intellij.ide.ui.LafManagerListener"/>
