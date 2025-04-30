@@ -6,21 +6,44 @@ import com.ltu.progressbar.icon.IconVytis
 import java.awt.*
 import java.awt.geom.AffineTransform
 import java.awt.geom.Rectangle2D
+import java.awt.image.BufferedImage
+import javax.swing.ImageIcon
 import javax.swing.JComponent
 import javax.swing.SwingConstants
 import javax.swing.Timer
+import javax.swing.UIManager
 import javax.swing.plaf.basic.BasicProgressBarUI
 
 open class LtuProgressBarUi : BasicProgressBarUI() {
 
-    private var lastIconXCoordinate = 0
+    companion object {
+        // to paint tricolor - 1/3 for each color
+        private const val A_THIRD = 0.333f
+    }
 
     private var animationTimer: Timer? = null
-    private val repaintDelay = 600 // Adjust this value (in milliseconds) to control the speed
+
+    private var coatOfArms: ImageIcon
+
+    init {
+        val image = BufferedImage(IconVytis.SMALL.iconWidth, IconVytis.SMALL.iconHeight, BufferedImage.TYPE_INT_ARGB)
+        val graphic2d = image.createGraphics()
+        IconVytis.SMALL.paintIcon(null, graphic2d, 0, 0)
+        graphic2d.dispose()
+
+        val scaledImage = image.getScaledInstance(16, 16, Image.SCALE_SMOOTH)
+        coatOfArms = ImageIcon(scaledImage)
+    }
+
+    override fun installDefaults() {
+        super.installDefaults()
+        UIManager.put("ProgressBar.cycleTime", 3200)
+    }
 
     override fun installUI(c: JComponent) {
         super.installUI(c)
-        animationTimer = Timer(repaintDelay) {
+        // Value (in ms) to control the repaint speed
+        animationTimer = Timer(55) {
             progressBar.repaint()
         }
         animationTimer?.start()
@@ -30,11 +53,6 @@ open class LtuProgressBarUi : BasicProgressBarUI() {
         animationTimer?.stop()
         animationTimer = null
         super.uninstallUI(c)
-    }
-
-    companion object {
-        // to paint tricolor - 1/3 for each color
-        private const val A_THIRD = 0.333f
     }
 
     override fun paintDeterminate(graphics: Graphics, component: JComponent) {
@@ -72,7 +90,7 @@ open class LtuProgressBarUi : BasicProgressBarUI() {
         graphic2d.paint = baseTricolorPaint
 
         val amountFull = getAmountFull(barBorders, barRectangleWidth, barRectangleHeight)
-        IconVytis.SMALL.paintIcon(progressBar, graphic2d, amountFull - JBUIScale.scale(3), 0)
+        coatOfArms.paintIcon(progressBar, graphic2d, amountFull - JBUIScale.scale(3), 0)
         graphic2d.fill(
             Rectangle2D.Float(
                 2f * off,
@@ -112,9 +130,7 @@ open class LtuProgressBarUi : BasicProgressBarUI() {
 
         val baseTricolorPaint = getTricolor(barHeight)
         graphic2d.paint = baseTricolorPaint
-
         graphic2d.fill(Rectangle2D.Float(1f, 1f, barWidth - 2f, barHeight - 2f))
-
 
         drawIndeterminateIcon(component, graphic2d)
 
@@ -122,12 +138,10 @@ open class LtuProgressBarUi : BasicProgressBarUI() {
     }
 
     private fun drawIndeterminateIcon(component: JComponent, graphic2d: Graphics2D) {
-//        boxRect = getBox(null) // Pass null to create a new Rectangle
         boxRect = getBox(boxRect)
-
         if (boxRect != null) {
-            IconVytis.SMALL.paintIcon(component, graphic2d, boxRect.x, progressBar.insets.top)
-            lastIconXCoordinate = boxRect.x
+            val iconTopLocation = JBUIScale.scale(2)
+            coatOfArms.paintIcon(component, graphic2d, boxRect.x, progressBar.insets.top - iconTopLocation)
         }
     }
 
