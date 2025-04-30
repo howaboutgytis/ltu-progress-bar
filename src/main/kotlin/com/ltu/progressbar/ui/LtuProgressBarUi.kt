@@ -1,215 +1,189 @@
 package com.ltu.progressbar.ui
 
-import com.intellij.ui.Gray
-import com.intellij.ui.JBColor
 import com.intellij.ui.scale.JBUIScale
-import com.intellij.util.ui.GraphicsUtil
-import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.UIUtilities
 import com.ltu.progressbar.icon.IconVytis
-import java.awt.Color
-import java.awt.Graphics
-import java.awt.Graphics2D
-import java.awt.LinearGradientPaint
+import java.awt.*
 import java.awt.geom.AffineTransform
-import java.awt.geom.Area
 import java.awt.geom.Rectangle2D
 import javax.swing.JComponent
 import javax.swing.SwingConstants
+import javax.swing.Timer
 import javax.swing.plaf.basic.BasicProgressBarUI
-import kotlin.concurrent.Volatile
 
 open class LtuProgressBarUi : BasicProgressBarUI() {
 
-    @Volatile
-    private var offset = 0
+    private var lastIconXCoordinate = 0
 
-    @Volatile
-    private var offset2 = 0
+    private var animationTimer: Timer? = null
+    private val repaintDelay = 600 // Adjust this value (in milliseconds) to control the speed
 
-    @Volatile
-    private var velocity = 1
+    override fun installUI(c: JComponent) {
+        super.installUI(c)
+        animationTimer = Timer(repaintDelay) {
+            progressBar.repaint()
+        }
+        animationTimer?.start()
+    }
+
+    override fun uninstallUI(c: JComponent) {
+        animationTimer?.stop()
+        animationTimer = null
+        super.uninstallUI(c)
+    }
 
     companion object {
+        // to paint tricolor - 1/3 for each color
         private const val A_THIRD = 0.333f
     }
 
-    override fun paintDeterminate(g: Graphics, c: JComponent) {
-        if (g !is Graphics2D) {
+    override fun paintDeterminate(graphics: Graphics, component: JComponent) {
+        val graphic2d = graphics as? Graphics2D ?: return
+
+        if (isProgressBarInvalid()) return
+
+        if (progressBar.orientation != SwingConstants.HORIZONTAL || !component.componentOrientation.isLeftToRight) {
+            super.paintDeterminate(graphic2d, component)
             return
         }
 
-        if (progressBar.orientation != SwingConstants.HORIZONTAL || !c.componentOrientation.isLeftToRight) {
-            super.paintDeterminate(g, c)
-            return
-        }
-        val config = GraphicsUtil.setupAAPainting(g)
-        val b = progressBar.insets // area for border
-        val w = progressBar.width
-        var h = progressBar.preferredSize.height
-        if (((c.height - h) and 1) != 0) h++ // if not even
+        val barBorders = progressBar.insets
+        val barWidth = progressBar.width
+        var barHeight = progressBar.preferredSize.height
+        if (((component.height - barHeight) and 1) != 0) barHeight++ // if not even
 
-        val barRectWidth = w - (b.right + b.left)
-        val barRectHeight = h - (b.top + b.bottom)
+        val barRectangleWidth = barWidth - (barBorders.right + barBorders.left)
+        val barRectangleHeight = barHeight - (barBorders.top + barBorders.bottom)
 
-        if (barRectWidth <= 0 || barRectHeight <= 0) {
-            return
-        }
-
-        val amountFull = getAmountFull(b, barRectWidth, barRectHeight)
-
-        val parent = c.parent
-        val background = if (parent != null) parent.background else UIUtil.getPanelBackground()
-
-        g.setColor(background)
-        if (c.isOpaque) {
-            g.fillRect(0, 0, w, h)
+        if (component.isOpaque && component.parent != null) {
+            graphic2d.color = component.parent.background
+            graphic2d.fillRect(0, 0, barWidth, barHeight)
         }
 
         val off = JBUIScale.scale(1f)
 
-        g.translate(0, (c.height - h) / 2)
-        g.color = progressBar.foreground
-        g.fill(Rectangle2D.Float(0f, 0f, w - off, h - off))
-        g.color = background
-        g.fill(Rectangle2D.Float(off, off, w - 2f * off - off, h - 2f * off - off))
-        g.paint = LinearGradientPaint(
-            0f, JBUIScale.scale(1).toFloat(), 0f, (h - JBUIScale.scale(3)).toFloat(),
-            floatArrayOf(A_THIRD * 1, A_THIRD * 2, A_THIRD * 3),
-            arrayOf<Color>(Color.YELLOW, Color(30, 110, 0), Color(200, 0, 0))
-        )
+        graphic2d.translate(0, (component.height - barHeight) / 2)
+        graphic2d.color = progressBar.foreground
+        graphic2d.fill(Rectangle2D.Float(0f, 0f, barWidth - off, barHeight - off))
+        graphic2d.color = component.parent.background
+        graphic2d.fill(Rectangle2D.Float(off, off, barWidth - 2f * off - off, barHeight - 2f * off - off))
 
-        IconVytis.SMALL.paintIcon(progressBar, g, amountFull - JBUIScale.scale(3), 0)
-        g.fill(
+        val baseTricolorPaint = getTricolor(barHeight)
+        graphic2d.paint = baseTricolorPaint
+
+        val amountFull = getAmountFull(barBorders, barRectangleWidth, barRectangleHeight)
+        IconVytis.SMALL.paintIcon(progressBar, graphic2d, amountFull - JBUIScale.scale(3), 0)
+        graphic2d.fill(
             Rectangle2D.Float(
                 2f * off,
                 2f * off,
                 amountFull - JBUIScale.scale(5f),
-                h - JBUIScale.scale(5f)
+                barHeight - JBUIScale.scale(5f)
             )
         )
-        g.translate(0, -(c.height - h) / 2)
+        graphic2d.translate(0, -(component.height - barHeight) / 2)
 
         // Deal with possible text painting
         if (progressBar.isStringPainted) {
             paintString(
-                g, b.left, b.top,
-                barRectWidth, barRectHeight,
-                amountFull, b
+                graphic2d, barBorders.left, barBorders.top,
+                barRectangleWidth, barRectangleHeight,
+                amountFull, barBorders
             )
         }
-        config.restore()
     }
 
-    override fun paintIndeterminate(g2d: Graphics?, c: JComponent) {
-        if (g2d !is Graphics2D) {
-            return
+    override fun paintIndeterminate(graphics: Graphics?, component: JComponent) {
+        val graphic2d = graphics as? Graphics2D ?: return
+
+        if (isProgressBarInvalid()) return
+
+        val barBorders = progressBar.insets
+        val barWidth = progressBar.width
+        var barHeight = progressBar.preferredSize.height
+        if (((component.height - barHeight) and 1) != 0) barHeight++ // if not even
+
+        if (component.isOpaque && component.parent != null) {
+            graphic2d.color = component.parent.background
+            graphic2d.fillRect(0, (component.height - barHeight - (barBorders.top + barBorders.bottom)) / 2, barWidth, barHeight)
         }
 
-        val b = progressBar.insets // area for border
-        val barRectWidth = progressBar.width - (b.right + b.left)
-        val barRectHeight = progressBar.height - (b.top + b.bottom)
+        graphic2d.translate(0, (component.height - barHeight) / 2)
 
-        if (barRectWidth <= 0 || barRectHeight <= 0) {
-            return
+        val baseTricolorPaint = getTricolor(barHeight)
+        graphic2d.paint = baseTricolorPaint
+
+        graphic2d.fill(Rectangle2D.Float(1f, 1f, barWidth - 2f, barHeight - 2f))
+
+
+        drawIndeterminateIcon(component, graphic2d)
+
+        drawIndeterminateString(graphic2d)
+    }
+
+    private fun drawIndeterminateIcon(component: JComponent, graphic2d: Graphics2D) {
+//        boxRect = getBox(null) // Pass null to create a new Rectangle
+        boxRect = getBox(boxRect)
+
+        if (boxRect != null) {
+            IconVytis.SMALL.paintIcon(component, graphic2d, boxRect.x, progressBar.insets.top)
+            lastIconXCoordinate = boxRect.x
         }
-        g2d.color = JBColor(Gray._240.withAlpha(50), Gray._128.withAlpha(50))
-        val w = c.width
-        var h = c.preferredSize.height
-        if (((c.height - h) and 1) != 0) h++
+    }
 
-        val baseTricolorPaint = LinearGradientPaint(
-            0f, JBUIScale.scale(1).toFloat(), 0f, (h - JBUIScale.scale(3)).toFloat(),
-            floatArrayOf(A_THIRD * 1, A_THIRD * 2, A_THIRD * 3),
-            arrayOf<Color>(Color.YELLOW, Color(30, 110, 0), Color(200, 0, 0))
-        )
-
-        g2d.paint = baseTricolorPaint
-
-        if (c.isOpaque) {
-            g2d.fillRect(0, (c.height - h) / 2, w, h)
-        }
-        g2d.color = JBColor(Gray._165.withAlpha(50), Gray._88.withAlpha(50))
-        val config = GraphicsUtil.setupAAPainting(g2d)
-        g2d.translate(0, (c.height - h) / 2)
-
-        val old = g2d.paint
-        g2d.paint = baseTricolorPaint
-
-        val containingRect = Area(Rectangle2D.Float(1f, 1f, w - 2f, h - 2f))
-
-        g2d.fill(containingRect)
-        g2d.paint = old
-        offset = (offset + 1) % getPeriodLength()
-        offset2 += velocity
-        if (offset2 <= 2) {
-            offset2 = 2
-            velocity = 1
-        } else if (offset2 >= w - JBUIScale.scale(15)) {
-            offset2 = w - JBUIScale.scale(15)
-            velocity = -1
-        }
-        val area = Area(Rectangle2D.Float(0f, 0f, w.toFloat(), h.toFloat()))
-        area.subtract(Area(Rectangle2D.Float(1f, 1f, w - 2f, h - 2f)))
-        g2d.paint = Gray._128
-        if (c.isOpaque) {
-            g2d.fill(area)
-        }
-
-        area.subtract(Area(Rectangle2D.Float(0f, 0f, w.toFloat(), h.toFloat())))
-
-        val parent = c.parent
-        val background = if (parent != null) parent.background else UIUtil.getPanelBackground()
-        g2d.paint = background
-        if (c.isOpaque) {
-            g2d.fill(area)
-        }
-
-        IconVytis.SMALL.paintIcon(progressBar, g2d, offset2 - JBUIScale.scale(10), -JBUIScale.scale(6))
-
-        g2d.draw(Rectangle2D.Float(1f, 1f, w - 2f - 1f, h - 2f - 1f))
-        g2d.translate(0, -(c.height - h) / 2)
-
-        // Deal with possible text painting
+    private fun drawIndeterminateString(graphic2d: Graphics2D) {
+        val rectangle = Rectangle(progressBar.size)
         if (progressBar.isStringPainted) {
             if (progressBar.orientation == SwingConstants.HORIZONTAL) {
-                paintString(g2d, b.left, b.top, barRectWidth, barRectHeight, boxRect.x, boxRect.width)
+                paintString(graphic2d, progressBar.insets.left, progressBar.insets.top,
+                    rectangle.width, rectangle.height, boxRect.x, boxRect.width)
             } else {
-                paintString(g2d, b.left, b.top, barRectWidth, barRectHeight, boxRect.y, boxRect.height)
+                paintString(graphic2d, progressBar.insets.left, progressBar.insets.top,
+                    rectangle.width, rectangle.height, boxRect.y, boxRect.height)
             }
         }
-        config.restore()
     }
 
-    private fun paintString(g: Graphics2D, x: Int, y: Int, w: Int, h: Int, fillStart: Int, amountFull: Int) {
+    private fun paintString(graphic2d: Graphics2D, x: Int, y: Int, w: Int, h: Int, fillStart: Int, amountFull: Int) {
         val progressString = progressBar.string
-        g.font = progressBar.font
-        var renderLocation = getStringPlacement(g, progressString, x, y, w, h)
-        val oldClip = g.clipBounds
+        graphic2d.font = progressBar.font
+        var renderLocation = getStringPlacement(graphic2d, progressString, x, y, w, h)
+        val oldClip = graphic2d.clipBounds
 
         if (progressBar.orientation == SwingConstants.HORIZONTAL) {
-            g.color = selectionBackground
-            UIUtilities.drawString(progressBar, g, progressString, renderLocation.x, renderLocation.y)
+            graphic2d.color = selectionBackground
+            UIUtilities.drawString(progressBar, graphic2d, progressString, renderLocation.x, renderLocation.y)
 
-            g.color = selectionForeground
-            g.clipRect(fillStart, y, amountFull, h)
-            UIUtilities.drawString(progressBar, g, progressString, renderLocation.x, renderLocation.y)
+            graphic2d.color = selectionForeground
+            graphic2d.clipRect(fillStart, y, amountFull, h)
+            UIUtilities.drawString(progressBar, graphic2d, progressString, renderLocation.x, renderLocation.y)
         } else { // VERTICAL
-            g.color = selectionBackground
+            graphic2d.color = selectionBackground
             val rotate = AffineTransform.getRotateInstance(Math.PI / 2)
-            g.font = progressBar.font.deriveFont(rotate)
-            renderLocation = getStringPlacement(g, progressString, x, y, w, h)
-            UIUtilities.drawString(progressBar, g, progressString, renderLocation.x, renderLocation.y)
+            graphic2d.font = progressBar.font.deriveFont(rotate)
+            renderLocation = getStringPlacement(graphic2d, progressString, x, y, w, h)
+            UIUtilities.drawString(progressBar, graphic2d, progressString, renderLocation.x, renderLocation.y)
 
-            g.color = selectionForeground
-            g.clipRect(x, fillStart, w, amountFull)
-            UIUtilities.drawString(progressBar, g, progressString, renderLocation.x, renderLocation.y)
+            graphic2d.color = selectionForeground
+            graphic2d.clipRect(x, fillStart, w, amountFull)
+            UIUtilities.drawString(progressBar, graphic2d, progressString, renderLocation.x, renderLocation.y)
         }
-        g.clip = oldClip
+        graphic2d.clip = oldClip
     }
 
-    private fun getPeriodLength(): Int {
-        return JBUIScale.scale(16)
+    private fun isProgressBarInvalid(): Boolean {
+        return progressBar.width - (progressBar.insets.left + progressBar.insets.right) <= 0
+                || progressBar.height - (progressBar.insets.top + progressBar.insets.bottom) <= 0
+    }
+
+    private fun getTricolor(barHeight: Int): LinearGradientPaint {
+        val tricolor = arrayOf<Color>(Color.YELLOW, Color(30, 110, 0), Color(200, 0, 0))
+        val baseTricolorPaint = LinearGradientPaint(
+            0f, JBUIScale.scale(1).toFloat(), 0f, (barHeight - JBUIScale.scale(3)).toFloat(),
+            floatArrayOf(A_THIRD * 1, A_THIRD * 2, A_THIRD * 3),
+            tricolor
+        )
+        return baseTricolorPaint
     }
 
 }

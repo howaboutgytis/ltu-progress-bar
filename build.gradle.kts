@@ -7,7 +7,7 @@ import java.time.LocalDateTime
 
 plugins {
     id("java")
-    id("org.jetbrains.kotlin.jvm") version "2.1.20" // Use latest stable Kotlin version
+    kotlin("jvm") version "2.1.20" // Use latest stable Kotlin version
     id("org.jetbrains.intellij.platform") version "2.5.0" // latest intellij-gradle-plugin https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
 }
 
