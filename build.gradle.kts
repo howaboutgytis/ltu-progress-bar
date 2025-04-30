@@ -34,7 +34,7 @@ intellijPlatform {
         name = "LTU Progress Bar"
         ideaVersion {
             sinceBuild = "243" // Min supported ver.
-            untilBuild = "243.*" // Max supported ver.
+            untilBuild = provider { null }// Max supported ver.
         }
     }
 

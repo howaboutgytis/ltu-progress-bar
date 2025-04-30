@@ -1,12 +1,13 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <id>com.ltu.progress-bar</id>
+    <id>com.ltu.progress.bar.LTUProgressBar</id>
     <name>LTU Progress Bar</name>
-    <vendor>LTU</vendor>
+    <vendor url="https://github.com/howaboutgytis/ltu-progress-bar">Gytis Dešukas</vendor>
 
     <description><![CDATA[
-        Custom progress bar plugin for IntelliJ IDEA.
-        <p>This plugin customizes the appearance of the IDE progress bar.</p>
+For LTU devs whose hearts beat stronger.
+
+<p>A custom progress bar plugin for IntelliJ IDEA 2024.3+</p>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
