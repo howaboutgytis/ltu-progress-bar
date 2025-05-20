@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "com.ltu.progressbar"
-version = "1.0.0"
+version = "1.0.1"
 
 repositories {
     mavenCentral()
@@ -63,7 +63,7 @@ tasks {
     }
 
     signPlugin {
-        // comment / change these when building your environment
+        // comment out / change these when building your environment
         certificateChainFile.set(File(System.getenv("LTU_PBP_CERTIFICATE_CHAIN_FILE")))
         privateKeyFile = File(System.getenv("LTU_PBP_PRIVATE_KEY_FILE"))
         password = System.getenv("LTU_PBP_PRIVATE_KEY_PASSWORD")

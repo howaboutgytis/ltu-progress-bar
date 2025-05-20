@@ -139,10 +139,8 @@ open class LtuProgressBarUi : BasicProgressBarUI() {
 
     private fun drawIndeterminateIcon(component: JComponent, graphic2d: Graphics2D) {
         boxRect = getBox(boxRect)
-        if (boxRect != null) {
-            val iconTopLocation = JBUIScale.scale(2)
-            coatOfArms.paintIcon(component, graphic2d, boxRect.x, progressBar.insets.top - iconTopLocation)
-        }
+        val iconTopLocation = JBUIScale.scale(2)
+        coatOfArms.paintIcon(component, graphic2d, boxRect.x, progressBar.insets.top - iconTopLocation)
     }
 
     private fun drawIndeterminateString(graphic2d: Graphics2D) {
@@ -200,4 +198,31 @@ open class LtuProgressBarUi : BasicProgressBarUI() {
         return baseTricolorPaint
     }
 
+    /**
+     * Override to correct icon draw for full bar width.
+     */
+    protected override fun getBox(r: Rectangle?): Rectangle {
+        val rectangle = super.getBox(r) ?: Rectangle()
+
+        if (progressBar.orientation == SwingConstants.HORIZONTAL) {
+            // Full width that the animation can traverse
+            val availableWidth =
+                progressBar.width - (progressBar.insets.left + progressBar.insets.right) - coatOfArms.iconWidth
+
+            val frame = animationIndex
+            val halfCycle = frameCount / 2
+
+            val position = if (frame < halfCycle) {
+                // Forward movement (0 to max)
+                (animationIndex * availableWidth) / (halfCycle - 1)
+            } else {
+                // Backward movement (max to 0)
+                availableWidth - ((frame - halfCycle) * availableWidth) / (frameCount - halfCycle - 1)
+            }
+
+            rectangle.x = position + progressBar.insets.left
+            rectangle.width = availableWidth
+        }
+        return rectangle
+    }
 }
